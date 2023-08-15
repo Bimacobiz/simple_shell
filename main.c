@@ -62,6 +62,7 @@ char *read_input(FILE *stream) {
 
 /* Function to execute a command */
 int execute_command(char *command, char **args) {
+	int status;
 	pid_t pid = fork();
 
 	if (pid < 0) {
@@ -74,13 +75,12 @@ int execute_command(char *command, char **args) {
 		exit(EXIT_FAILURE);
 	} else {
 		/* Parent process: wait for the child to finish executing */
-		int status;
 		waitpid(pid, &status, 0);
 
 		if (WIFEXITED(status)) {
 			return WEXITSTATUS(status);
 		} else {
-			return -1; // Command execution failed
+			return -1; /* Command execution failed */
 		}
 	}
 }
@@ -117,7 +117,7 @@ int string_token(char *input_string, const char *delimiters, char **args) {
 
 			if (numtoken >= MAX_ARGS) {
 				fprintf(stderr, "Too many arguments. Maximum allowed: %d\n", MAX_ARGS);
-				free_args(args); // Free memory for allocated arguments
+				free_args(args); /* Free memory for allocated arguments */
 				break;
 			}
 		}
@@ -149,15 +149,17 @@ int is_interactive_mode(void) {
 }
 
 /* Function to handle the "alias" built-in command */
-void handle_alias_command(char **args, Alias *aliases, int *alias_count) {
+void handle_alias_command(char **args, Alias *aliases, int *alias_count) 
+{
+	int i;
 	if (args[1] == NULL) {
 		/* No arguments provided, list all aliases */
-		for (int i = 0; i < *alias_count; i++) {
+		for (i = 0; i < *alias_count; i++) {
 			printf("alias %s='%s'\n", aliases[i].alias_name, aliases[i].command);
 		}
 	} else if (args[2] == NULL) {
 		/* Single argument provided, show the alias if it exists */
-		for (int i = 0; i < *alias_count; i++) {
+		for (i = 0; i < *alias_count; i++) {
 			if (strcmp(args[1], aliases[i].alias_name) == 0) {
 				printf("alias %s='%s'\n", aliases[i].alias_name, aliases[i].command);
 				return;
@@ -187,7 +189,8 @@ void handle_alias_command(char **args, Alias *aliases, int *alias_count) {
 void handle_comment(char *input_string) {
 	char *comment_start = strchr(input_string, '#');
 	if (comment_start != NULL) {
-		*comment_start = '\0'; // Replace '#' with '\0' to terminate the string at the comment start
+		*comment_start = '\0'; 
+		/* Replace '#' with '\0' to terminate the string at the comment start */
 	}
 }
 
@@ -199,9 +202,12 @@ int is_variable(char *input_string, const char *variable_name) {
 }
 
 /* Function to replace variables in command arguments */
-void replace_variables(char **args, Variable *variables, int variable_count) {
-	for (int i = 0; args[i] != NULL; i++) {
-		for (int j = 0; j < variable_count; j++) {
+void replace_variables(char **args, Variable *variables, int variable_count) 
+{
+	int i;
+	int j;
+	for (i = 0; args[i] != NULL; i++) {
+		for (j = 0; j < variable_count; j++) {
 			if (is_variable(args[i], variables[j].name)) {
 				/* Replace the variable with its value */
 				free(args[i]);
@@ -215,8 +221,10 @@ void replace_variables(char **args, Variable *variables, int variable_count) {
 }
 
 /* Function to handle the $$ variable */
-void handle_dollar_dollar(char **args) {
-	for (int i = 0; args[i] != NULL; i++) {
+void handle_dollar_dollar(char **args) 
+{
+        int i;
+	for (i = 0; args[i] != NULL; i++) {
 		if (is_variable(args[i], "$$")) {
 			/* Replace the $$ with the current process ID */
 			char pid_str[20];
@@ -232,8 +240,16 @@ void handle_dollar_dollar(char **args) {
 
 /* Function to execute a shell with a given input stream */
 void execute_shell(FILE *stream) {
+	int i;
 	char *buf;
 	int num_tokens;
+	int alias_count;
+	int variable_count;
+	int status;
+	Alias aliases[MAX_ALIASES];
+	Variable variables[MAX_VARIABLES];
+	char *command = NULL;
+	char *op = NULL;
 	char prompt[] = "$ ";
 
 	/* Default delimiters if not provided through command-line arguments */
@@ -246,11 +262,9 @@ void execute_shell(FILE *stream) {
 		/* Print the prompt on a new line in interactive mode */
 	}
 
-	Alias aliases[MAX_ALIASES];
-	int alias_count = 0;
+	alias_count = 0;
 
-	Variable variables[MAX_VARIABLES];
-	int variable_count = 0;
+	variable_count = 0;
 
 	while (1) {
 		/* Declare the args array to hold command arguments */
@@ -274,7 +288,7 @@ void execute_shell(FILE *stream) {
 		}
 
 		/* Split commands based on ';' as a delimiter */
-		char *command = strtok(buf, ";");
+		command = strtok(buf, ";");
 		while (command != NULL) {
 			/* Prevent processing empty commands or excessively long commands */
 			if (strlen(command) > 0 && strlen(command) < 1024) {
@@ -283,7 +297,7 @@ void execute_shell(FILE *stream) {
 				if (num_tokens > 0) {
 					/* Check if the command is a comment */
 					if (is_variable(args[0], "#")) {
-						break; // Skip the comment line
+						break; /* Skip the comment line */
 					}
 
 					/* Check if the command is a built-in command */
@@ -302,10 +316,10 @@ void execute_shell(FILE *stream) {
 					handle_dollar_dollar(args);
 
 					/* Execute the command and consider logical operators */
-					int status = execute_command(args[0], args);
+					status = execute_command(args[0], args);
 
 					/* Check if there is an AND (&&) or OR (||) operator in the command */
-					char *op = strtok(NULL, "&|");
+					op = strtok(NULL, "&|");
 					while (op != NULL) {
 						int is_and = strcmp(op, "&&") == 0;
 						int is_or = strcmp(op, "||") == 0;
@@ -349,15 +363,17 @@ void execute_shell(FILE *stream) {
 	}
 
 	/* Free memory allocated for aliases */
-	for (int i = 0; i < alias_count; i++) {
+	for (i = 0; i < alias_count; i++) {
 		free(aliases[i].alias_name);
 		free(aliases[i].command);
 	}
 }
 
 /* Function to free memory allocated for arguments */
-void free_args(char **args) {
-	for (int i = 0; args[i] != NULL; i++) {
+void free_args(char **args) 
+{
+	int i;
+	for (i = 0; args[i] != NULL; i++) {
 		free(args[i]);
 	}
 }
@@ -372,7 +388,7 @@ int main(int argc, char *argv[]) {
 			exit(EXIT_FAILURE);
 		}
 
-		execute_shell(file); // Execute the shell with the file as input
+		execute_shell(file); /* Execute the shell with the file as input */
 		fclose(file);
 	} else {
 		/* No file provided, execute the shell with standard input */
