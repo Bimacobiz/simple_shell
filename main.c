@@ -62,30 +62,31 @@ char *read_input(FILE *stream) {
 
 /* Function to execute a command */
 int execute_command(char *command, char **args) {
-	int status;
-	pid_t pid = fork();
+    int status;
+    pid_t pid = fork();
 
-	if (pid < 0) {
-		perror("fork Error");
-		return 1;
-	} else if (pid == 0) {
-		/* Child process: execute the command */
-		execvp(command, args);
-		fprintf(stderr, "Command '%s' not found.\n", command);
-		exit(EXIT_FAILURE);
-	} else {
-		/* Parent process: wait for the child to finish executing */
-		waitpid(pid, &status, 0);
+    if (pid < 0) {
+        perror("fork Error");
+        return 1;
+    } else if (pid == 0) {
+        /* Child process: execute the command */
+        if (execvp(command, args) == -1) {
+            perror("Command not found");
+            exit(127); 
+        }
+    } else {
+        /* Parent process: wait for the child to finish executing */
+        waitpid(pid, &status, 0);
 
-		if (WIFEXITED(status)) {
-			return WEXITSTATUS(status);
-		} else {
-			return -1; /* Command execution failed */
-		}
-	}
+        if (WIFEXITED(status)) {
+            return WEXITSTATUS(status);
+        } else {
+            return -1; /* Command execution failed */
+        }
+    }
+    return (1);/*default exit status */
 }
 
-/* Function to tokenize the input string */
 /* Function to tokenize the input string */
 int string_token(char *input_string, const char *delimiters, char **args) {
     size_t token_len;
