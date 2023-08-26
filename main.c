@@ -358,7 +358,8 @@ void execute_shell(FILE *stream) {
 		free_args(args); /* Free allocated memory for arguments */
 		free(buf); /* Don't forget to free the allocated memory! */
 
-		if (is_interactive_mode()) {
+		if (is_interactive_mode() && (buf[0] != '\n')) {
+
 			write(STDOUT_FILENO, prompt, sizeof(prompt) - 1);
 			/* Print the prompt again after executing commands */
 		}
