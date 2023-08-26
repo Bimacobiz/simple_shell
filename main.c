@@ -62,74 +62,72 @@ char *read_input(FILE *stream) {
 
 /* Function to execute a command */
 int execute_command(char *command, char **args) {
-    int status;
-    pid_t pid = fork();
+	int status;
+	pid_t pid = fork();
 
-    if (pid < 0) {
-        perror("fork Error");
-        return 1;
-    } else if (pid == 0) {
-        /* Child process: execute the command */
-        if (execvp(command, args) == -1) {
-            perror("Command not found");
-            exit(127); 
-        }
-    } else {
-        /* Parent process: wait for the child to finish executing */
-        waitpid(pid, &status, 0);
+	if (pid < 0) {
+		perror("fork Error");
+		return 1;
+	} else if (pid == 0) {
+		/* Child process: execute the command */
+		execvp(command, args);
+		fprintf(stderr, "Command '%s' not found.\n", command);
+		exit(EXIT_FAILURE);
+	} else {
+		/* Parent process: wait for the child to finish executing */
+		waitpid(pid, &status, 0);
 
-        if (WIFEXITED(status)) {
-            return WEXITSTATUS(status);
-        } else {
-            return -1; /* Command execution failed */
-        }
-    }
-    return (1);/*default exit status */
+		if (WIFEXITED(status)) {
+			return WEXITSTATUS(status);
+		} else {
+			return -1; /* Command execution failed */
+		}
+	}
 }
 
 /* Function to tokenize the input string */
 int string_token(char *input_string, const char *delimiters, char **args) {
-    size_t token_len;
-    int numtoken = 0;
+	size_t token_len;
+	int numtoken = 0;
 
-    if (input_string == NULL) {
-        perror("String not found");
-        return 0;
-    }
+	if (input_string == NULL) {
+		perror("String not found");
+		return 0;
+	}
 
-    /* Skip leading delimiters */
-    input_string += strspn(input_string, delimiters);
+	while (*input_string) {
+		/* Skip leading delimiters */
+		input_string += strspn(input_string, delimiters);
 
-    while (*input_string) {
-        /* Find the end of the token */
-        token_len = strcspn(input_string, delimiters);
+		/* Find the end of the token */
+		token_len = strcspn(input_string, delimiters);
 
-        if (token_len > 0) {
-            char *token = malloc(token_len + 1);
-            if (token == NULL) {
-                perror("Memory allocation error");
-                return 0;
-            }
+		if (token_len > 0) {
+			char *token = malloc(token_len + 1);
+			if (token == NULL) {
+				perror("Memory allocation error");
+				return 0;
+			}
 
-            strncpy(token, input_string, token_len);
-            token[token_len] = '\0';
+			strncpy(token, input_string, token_len);
+			token[token_len] = '\0';
 
-            args[numtoken] = token;
-            numtoken++;
+			args[numtoken] = token;
+			numtoken++;
 
-            if (numtoken >= MAX_ARGS) {
-                fprintf(stderr, "Too many arguments. Maximum allowed: %d\n", MAX_ARGS);
-                free_args(args); /* Free memory for allocated arguments */
-                break;
-            }
-        }
-        /* Move to the next token */
-        input_string += token_len + strspn(input_string + token_len, delimiters);
-    }
+			if (numtoken >= MAX_ARGS) {
+				fprintf(stderr, "Too many arguments. Maximum allowed: %d\n", MAX_ARGS);
+				free_args(args); /* Free memory for allocated arguments */
+				break;
+			}
+		}
+		/* Move to the next token */
+		input_string += token_len;
+	}
 
-    args[numtoken] = NULL;
+	args[numtoken] = NULL;
 
-    return numtoken;
+	return numtoken;
 }
 
 /* Function to check if the command is a built-in command */
@@ -358,8 +356,7 @@ void execute_shell(FILE *stream) {
 		free_args(args); /* Free allocated memory for arguments */
 		free(buf); /* Don't forget to free the allocated memory! */
 
-		if (is_interactive_mode() && (buf[0] != '\n')) {
-
+		if (is_interactive_mode()) {
 			write(STDOUT_FILENO, prompt, sizeof(prompt) - 1);
 			/* Print the prompt again after executing commands */
 		}
