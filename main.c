@@ -86,48 +86,49 @@ int execute_command(char *command, char **args) {
 }
 
 /* Function to tokenize the input string */
+/* Function to tokenize the input string */
 int string_token(char *input_string, const char *delimiters, char **args) {
-	size_t token_len;
-	int numtoken = 0;
+    size_t token_len;
+    int numtoken = 0;
 
-	if (input_string == NULL) {
-		perror("String not found");
-		return 0;
-	}
+    if (input_string == NULL) {
+        perror("String not found");
+        return 0;
+    }
 
-	while (*input_string) {
-		/* Skip leading delimiters */
-		input_string += strspn(input_string, delimiters);
+    /* Skip leading delimiters */
+    input_string += strspn(input_string, delimiters);
 
-		/* Find the end of the token */
-		token_len = strcspn(input_string, delimiters);
+    while (*input_string) {
+        /* Find the end of the token */
+        token_len = strcspn(input_string, delimiters);
 
-		if (token_len > 0) {
-			char *token = malloc(token_len + 1);
-			if (token == NULL) {
-				perror("Memory allocation error");
-				return 0;
-			}
+        if (token_len > 0) {
+            char *token = malloc(token_len + 1);
+            if (token == NULL) {
+                perror("Memory allocation error");
+                return 0;
+            }
 
-			strncpy(token, input_string, token_len);
-			token[token_len] = '\0';
+            strncpy(token, input_string, token_len);
+            token[token_len] = '\0';
 
-			args[numtoken] = token;
-			numtoken++;
+            args[numtoken] = token;
+            numtoken++;
 
-			if (numtoken >= MAX_ARGS) {
-				fprintf(stderr, "Too many arguments. Maximum allowed: %d\n", MAX_ARGS);
-				free_args(args); /* Free memory for allocated arguments */
-				break;
-			}
-		}
-		/* Move to the next token */
-		input_string += token_len;
-	}
+            if (numtoken >= MAX_ARGS) {
+                fprintf(stderr, "Too many arguments. Maximum allowed: %d\n", MAX_ARGS);
+                free_args(args); /* Free memory for allocated arguments */
+                break;
+            }
+        }
+        /* Move to the next token */
+        input_string += token_len + strspn(input_string + token_len, delimiters);
+    }
 
-	args[numtoken] = NULL;
+    args[numtoken] = NULL;
 
-	return numtoken;
+    return numtoken;
 }
 
 /* Function to check if the command is a built-in command */
